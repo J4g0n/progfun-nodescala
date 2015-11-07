@@ -79,8 +79,11 @@ package object nodescala {
 
     /** Creates a cancellable context for an execution and runs it.
      */
-    def run()(f: CancellationToken => Future[Unit]): Subscription = ???
-
+    def run()(f: CancellationToken => Future[Unit]): Subscription = {
+      val cts = CancellationTokenSource()
+      f(cts.cancellationToken)
+      cts
+    }
   }
 
   /** Adds extension methods to future objects.
@@ -189,7 +192,15 @@ package object nodescala {
   object CancellationTokenSource {
     /** Creates a new `CancellationTokenSource`.
      */
-    def apply(): CancellationTokenSource = ???
+    def apply(): CancellationTokenSource = new CancellationTokenSource {
+      val p = Promise[Unit]()
+      val cancellationToken = new CancellationToken {
+        def isCancelled = p.future.value != None
+      }
+      def unsubscribe() {
+        p.trySuccess(())
+      }
+    }
   }
 
 }
