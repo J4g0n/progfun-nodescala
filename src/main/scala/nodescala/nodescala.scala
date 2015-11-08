@@ -51,10 +51,20 @@ trait NodeScala {
     val subscribeToListener = listener.start()
     val subscribeToRequest = Future.run() { token =>
       Future {
-        val nextRequest = listener.nextRequest()
+        /*val nextRequest = listener.nextRequest()
         nextRequest onSuccess {
           case (request, exchange) =>
             respond(exchange, token, handler(request))
+        }*/
+        async {
+          while (token.nonCancelled) {
+            val (request, exchange) = await { listener.nextRequest() }
+            async {
+              respond(exchange, token, handler(request))
+            }
+          }
+
+          subscribeToListener.unsubscribe()
         }
       }
     }
