@@ -10,6 +10,19 @@ import scala.async.Async.{async, await}
  */
 package object nodescala {
 
+  def continueWithOutside[T, S](f: Future[T], cont: Future[T] => S): Future[S] = async {
+    await(f)
+    cont(f)
+    /*val p = Promise[S]()
+
+    f.onComplete {
+      case Success(s) => p.success(cont(f))
+      case Failure(e) => p.failure(e)
+    }
+
+    p.future*/
+  }
+
   /** Adds extensions methods to the `Future` companion object.
    */
   implicit class FutureCompanionOps[T](val f: Future.type ) extends AnyVal {
@@ -74,7 +87,7 @@ package object nodescala {
     /** Completes this future with user input.
      */
     def userInput(message: String): Future[String] = Future {
-      scala.io.StdIn.readLine(message)
+      Console.readLine(message)
     }
 
     /** Creates a cancellable context for an execution and runs it.
@@ -119,18 +132,7 @@ package object nodescala {
      *  The function `cont` is called only after the current future completes.
      *  The resulting future contains a value returned by `cont`.
      */
-    def continueWith[S](cont: Future[T] => S): Future[S] =  async {
-      await(f)
-      cont(f)
-      /*val p = Promise[S]()
-
-      f.onComplete {
-        case Success(s) => p.success(cont(f))
-        case Failure(e) => p.failure(e)
-      }
-
-      p.future*/
-    }
+    def continueWith[S](cont: Future[T] => S): Future[S] = continueWithOutside[T, S](f, cont)
 
     /** Continues the computation of this future by taking the result
      *  of the current future and mapping it into another future.
